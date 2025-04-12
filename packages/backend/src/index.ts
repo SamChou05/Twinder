@@ -6,6 +6,7 @@ import path from 'path';
 import { AppDataSource } from './config/database';
 import authRoutes from './routes/authRoutes';
 import duoRoutes from './routes/duoRoutes';
+import friendshipRoutes from './routes/friendshipRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -27,6 +28,7 @@ app.get('/api/health', (req, res) => {
 // Route handlers
 app.use('/api/auth', authRoutes);
 app.use('/api/profile/duo', duoRoutes);
+app.use('/api/friends', friendshipRoutes);
 
 // Serve static files from the public directory in production
 if (isProduction) {

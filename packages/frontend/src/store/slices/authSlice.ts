@@ -56,15 +56,28 @@ export const register = createAsyncThunk(
     email, 
     password, 
     name, 
-    age 
+    age,
+    latitude,
+    longitude,
+    location
   }: { 
     email: string; 
     password: string; 
     name: string; 
-    age: number 
+    age: number;
+    latitude?: number;
+    longitude?: number;
+    location?: string;
   }, { rejectWithValue }) => {
     try {
-      const userData = { name, age };
+      const userData = { 
+        name, 
+        age,
+        latitude,
+        longitude,
+        location
+      };
+      
       const data = await signUp(email, password, userData);
       return data;
     } catch (error: any) {

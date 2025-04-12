@@ -16,6 +16,15 @@ export class Duo {
   @Column('text', { array: true, default: [] })
   photos!: string[];
 
+  @Column({ nullable: true, type: 'float' })
+  latitude?: number;
+
+  @Column({ nullable: true, type: 'float' })
+  longitude?: number;
+
+  @Column({ nullable: true })
+  location?: string;
+
   @ManyToOne(() => User, (user: User) => user.duosAsUser1)
   user1!: User;
 

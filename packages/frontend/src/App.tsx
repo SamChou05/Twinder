@@ -9,6 +9,14 @@ import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Debug from './pages/Debug';
+import Friends from './pages/Friends';
+import DuoList from './pages/DuoList';
+import DuoCreate from './pages/DuoCreate';
+import DuoEdit from './pages/DuoEdit';
+import DuoDetail from './pages/DuoDetail';
+import Chats from './pages/Chats';
+import ChatDetail from './pages/ChatDetail';
+import NearbyDuos from './pages/NearbyDuos';
 
 const App = () => {
   const { session, initialized, loading, error } = useSelector((state: RootState) => state.auth);
@@ -61,7 +69,7 @@ const App = () => {
           element={
             <ProtectedRoute>
               <Layout>
-                <div>Explore Page Coming Soon</div>
+                <Friends />
               </Layout>
             </ProtectedRoute>
           } 
@@ -71,7 +79,47 @@ const App = () => {
           element={
             <ProtectedRoute>
               <Layout>
-                <div>My Duos Page Coming Soon</div>
+                <DuoList />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/duos/create" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <DuoCreate />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/duos/edit/:id" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <DuoEdit />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/nearby" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <NearbyDuos />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/friends" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Friends />
               </Layout>
             </ProtectedRoute>
           } 

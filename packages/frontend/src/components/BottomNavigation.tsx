@@ -18,7 +18,7 @@ const NavItem = styled(NavLink)`
   flex-direction: column;
   align-items: center;
   padding: 10px 0;
-  width: 20%;
+  width: 25%;
   color: #999;
   text-decoration: none;
   font-size: 12px;
@@ -36,17 +36,20 @@ const NavItem = styled(NavLink)`
 const BottomNavigation = () => {
   return (
     <NavContainer>
-      <NavItem to="/home" end>
+      <NavItem to="/" end>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
         </svg>
         Home
       </NavItem>
-      <NavItem to="/chats">
+      <NavItem to="/friends">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"></path>
+          <circle cx="17" cy="7" r="4"></circle>
+          <path d="M15 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"></path>
         </svg>
-        Chats
+        Friends
       </NavItem>
       <NavItem to="/duos">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -63,13 +66,6 @@ const BottomNavigation = () => {
           <circle cx="12" cy="7" r="4"></circle>
         </svg>
         Profile
-      </NavItem>
-      <NavItem to="/settings">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path>
-        </svg>
-        Settings
       </NavItem>
     </NavContainer>
   );
