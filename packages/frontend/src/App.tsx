@@ -13,10 +13,7 @@ import Friends from './pages/Friends';
 import DuoList from './pages/DuoList';
 import DuoCreate from './pages/DuoCreate';
 import DuoEdit from './pages/DuoEdit';
-import DuoDetail from './pages/DuoDetail';
 import Chats from './pages/Chats';
-import ChatDetail from './pages/ChatDetail';
-import NearbyDuos from './pages/NearbyDuos';
 
 const App = () => {
   const { session, initialized, loading, error } = useSelector((state: RootState) => state.auth);
@@ -100,16 +97,6 @@ const App = () => {
             <ProtectedRoute>
               <Layout>
                 <DuoEdit />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/nearby" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <NearbyDuos />
               </Layout>
             </ProtectedRoute>
           } 

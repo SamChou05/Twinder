@@ -21,7 +21,6 @@ const Layout = ({ children }: LayoutProps) => {
     if (path === '/') return 'home';
     if (path.startsWith('/explore') || path.startsWith('/friends')) return 'explore';
     if (path.startsWith('/duos')) return 'duos';
-    if (path.startsWith('/nearby')) return 'nearby';
     if (path.startsWith('/chats')) return 'chats';
     if (path.startsWith('/profile')) return 'profile';
     return '';

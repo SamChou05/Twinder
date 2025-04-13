@@ -61,10 +61,6 @@ const NavBar = ({ activePage }: NavBarProps) => {
           <NavIcon>👥</NavIcon>
           <NavText>My Duos</NavText>
         </NavLink>
-        <NavLink to="/nearby" active={activePage === 'nearby'}>
-          <NavIcon>📍</NavIcon>
-          <NavText>Nearby</NavText>
-        </NavLink>
         <NavLink to="/chats" active={activePage === 'chats'}>
           <NavIcon>💬</NavIcon>
           <NavText>Chats</NavText>

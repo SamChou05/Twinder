@@ -367,6 +367,38 @@ const DuoCreate = () => {
         return;
       }
       
+      // Check if a duo already exists with this partner
+      const partnerId = formData.partner;
+      const userId = user.id;
+      
+      console.log('Checking if duo already exists with:', {
+        currentUser: userId,
+        partner: partnerId
+      });
+      
+      // Check both possible combinations (user1/user2 and user2/user1)
+      const { data: existingDuos, error: duoCheckError } = await supabase
+        .from('duos')
+        .select('id, title')
+        .or(`and(user1_id.eq.${userId},user2_id.eq.${partnerId}),and(user1_id.eq.${partnerId},user2_id.eq.${userId})`);
+      
+      if (duoCheckError) {
+        console.error('Error checking existing duos:', duoCheckError);
+        setError('Failed to check for existing duos: ' + duoCheckError.message);
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('Existing duos check result:', existingDuos);
+      
+      if (existingDuos && existingDuos.length > 0) {
+        const existingDuo = existingDuos[0];
+        console.log('Duo already exists with this partner:', existingDuo);
+        setError(`You already have a duo with ${selectedFriend.name}: "${existingDuo.title}". You cannot create multiple duos with the same partner.`);
+        setIsLoading(false);
+        return;
+      }
+      
       // Generate duo name from user's name and partner's name
       const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
       const partnerName = selectedFriend.name;
