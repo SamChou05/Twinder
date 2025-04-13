@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import styled from 'styled-components';
+import { supabase } from '../supabaseClient';
+import { RootState } from '../store';
+import { calculateDistance } from '../utils/locationUtils';
 
 const HomeContainer = styled.div`
   max-width: 800px;
@@ -38,6 +42,33 @@ const ProfileName = styled.h2`
 
 const ProfileBio = styled.p`
   color: var(--light-text);
+  margin-bottom: 15px;
+`;
+
+const LocationInfo = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 15px;
+  color: var(--light-text);
+  font-size: 14px;
+`;
+
+const LocationIcon = styled.span`
+  margin-right: 8px;
+  font-size: 18px;
+`;
+
+const LocationText = styled.span`
+  font-weight: 500;
+`;
+
+const DistanceBadge = styled.span`
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 3px 10px;
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--secondary-color);
 `;
 
 const ActionButtons = styled.div`
@@ -55,6 +86,13 @@ const ActionButton = styled.button<{ color?: string }>`
   justify-content: center;
   font-size: 24px;
   background-color: ${props => props.color || 'var(--primary-color)'};
+  border: none;
+  cursor: pointer;
+  color: white;
+  
+  &:hover {
+    opacity: 0.9;
+  }
 `;
 
 const NoContent = styled.div`
@@ -80,43 +118,203 @@ const SwipeIndicator = styled.div<{ type: 'like' | 'dislike' }>`
   background-color: rgba(255, 255, 255, 0.8);
 `;
 
-// Mock duo profiles for swiping
+const LoadingState = styled.div`
+  text-align: center;
+  padding: 40px;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+`;
+
+// Extended mock duo profiles with location data
 const mockProfiles = [
   {
     id: '1',
-    name: 'Team Rocket',
+    title: 'Team Rocket',
     bio: 'Prepare for trouble, make it double! We are gaming enthusiasts looking for worthy opponents.',
-    imageUrl: 'https://via.placeholder.com/400x300/FF4081/FFFFFF?text=Team+Rocket'
+    photos: ['https://via.placeholder.com/400x300/FF4081/FFFFFF?text=Team+Rocket'],
+    location: 'San Francisco, CA',
+    latitude: 37.7749,
+    longitude: -122.4194
   },
   {
     id: '2',
-    name: 'Dynamic Duo',
+    title: 'Dynamic Duo',
     bio: 'Batman and Robin of the gaming world. We specialize in strategy games.',
-    imageUrl: 'https://via.placeholder.com/400x300/3F51B5/FFFFFF?text=Dynamic+Duo'
+    photos: ['https://via.placeholder.com/400x300/3F51B5/FFFFFF?text=Dynamic+Duo'],
+    location: 'Los Angeles, CA',
+    latitude: 34.0522,
+    longitude: -118.2437
   },
   {
     id: '3',
-    name: 'Power Pair',
+    title: 'Power Pair',
     bio: 'Two friends who love cooperative gameplay and puzzle solving.',
-    imageUrl: 'https://via.placeholder.com/400x300/4CAF50/FFFFFF?text=Power+Pair'
+    photos: ['https://via.placeholder.com/400x300/4CAF50/FFFFFF?text=Power+Pair'],
+    location: 'New York, NY',
+    latitude: 40.7128,
+    longitude: -74.0060
   }
 ];
 
+interface DuoProfile {
+  id: string;
+  title: string;
+  bio: string;
+  photos: string[];
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number | null;
+}
+
 const Home = () => {
-  const [profiles, setProfiles] = useState(mockProfiles);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const [profiles, setProfiles] = useState<DuoProfile[]>([]);
   const [currentProfile, setCurrentProfile] = useState(0);
-  const [hasProfiles, setHasProfiles] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [swipeDirection, setSwipeDirection] = useState<'like' | 'dislike' | null>(null);
+  const [userLocation, setUserLocation] = useState<{latitude?: number, longitude?: number} | null>(null);
   
-  // Simulate loading profiles - in a real app this would be from API
+  // Fetch user's location from their profile
   useEffect(() => {
-    // For demo purposes, set hasProfiles to true after 1 second
-    const timer = setTimeout(() => {
-      setHasProfiles(true);
-    }, 1000);
+    const fetchUserLocation = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('latitude, longitude')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching user location:', error);
+          return;
+        }
+        
+        if (data) {
+          console.log('User location:', data);
+          setUserLocation(data);
+        }
+      } catch (err) {
+        console.error('Error fetching user location:', err);
+      }
+    };
     
-    return () => clearTimeout(timer);
-  }, []);
+    fetchUserLocation();
+  }, [user]);
+  
+  // Fetch duo profiles
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      setIsLoading(true);
+      
+      try {
+        if (!user) {
+          // If no user is authenticated, use mock data for preview
+          const mockWithDistances = mockProfiles.map(profile => {
+            const distance = calculateDistance(
+              userLocation?.latitude,
+              userLocation?.longitude,
+              profile.latitude,
+              profile.longitude
+            );
+            
+            return {
+              ...profile,
+              distance
+            };
+          });
+          
+          setProfiles(mockWithDistances);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Fetch real profiles from Supabase
+        console.log('Fetching duo profiles for user:', user.id);
+        
+        // Get duos where the current user is not a participant
+        const { data: duoData, error: duoError } = await supabase
+          .from('duos')
+          .select('id, title, bio, photos, location, latitude, longitude, user1_id, user2_id')
+          .not('user1_id', 'eq', user.id)
+          .not('user2_id', 'eq', user.id);
+        
+        if (duoError) {
+          console.error('Error fetching duo profiles:', duoError);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('Found duo profiles:', duoData?.length || 0);
+        
+        // Map the data and calculate distances
+        const profilesWithDistance = duoData?.map(duo => {
+          const distance = calculateDistance(
+            userLocation?.latitude,
+            userLocation?.longitude,
+            duo.latitude,
+            duo.longitude
+          );
+          
+          return {
+            ...duo,
+            distance
+          };
+        }) || [];
+        
+        // If we have real profiles, use them; otherwise fall back to mock data
+        if (profilesWithDistance.length > 0) {
+          console.log('Using real profiles with distances:', profilesWithDistance);
+          setProfiles(profilesWithDistance);
+        } else {
+          console.log('No real profiles found, using mock data');
+          // Fall back to mock data if no profiles found
+          const mockWithDistances = mockProfiles.map(profile => {
+            const distance = calculateDistance(
+              userLocation?.latitude,
+              userLocation?.longitude,
+              profile.latitude,
+              profile.longitude
+            );
+            
+            return {
+              ...profile,
+              distance
+            };
+          });
+          
+          setProfiles(mockWithDistances);
+        }
+      } catch (err) {
+        console.error('Error fetching profiles:', err);
+        // Fall back to mock data on error
+        const mockWithDistances = mockProfiles.map(profile => {
+          const distance = calculateDistance(
+            userLocation?.latitude,
+            userLocation?.longitude,
+            profile.latitude,
+            profile.longitude
+          );
+          
+          return {
+            ...profile,
+            distance
+          };
+        });
+        
+        setProfiles(mockWithDistances);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (userLocation) {
+      fetchProfiles();
+    }
+  }, [userLocation, user]);
 
   const handleSwipe = (direction: 'like' | 'dislike') => {
     setSwipeDirection(direction);
@@ -133,6 +331,33 @@ const Home = () => {
     }, 800);
   };
 
+  if (isLoading) {
+    return (
+      <HomeContainer>
+        <Header>
+          <h1>Twinder</h1>
+          <p>Find your perfect duo match</p>
+        </Header>
+        <LoadingState>Loading potential matches...</LoadingState>
+      </HomeContainer>
+    );
+  }
+
+  if (!profiles.length) {
+    return (
+      <HomeContainer>
+        <Header>
+          <h1>Twinder</h1>
+          <p>Find your perfect duo match</p>
+        </Header>
+        <NoContent>
+          <h2>No Matches Found</h2>
+          <p>We couldn't find any duo matches for you at the moment. Check back later!</p>
+        </NoContent>
+      </HomeContainer>
+    );
+  }
+
   return (
     <HomeContainer>
       <Header>
@@ -140,34 +365,34 @@ const Home = () => {
         <p>Find your perfect duo match</p>
       </Header>
       
-      {hasProfiles ? (
-        <>
-          <ProfileCard>
-            {swipeDirection && <SwipeIndicator type={swipeDirection}>
-              {swipeDirection === 'like' ? 'LIKE' : 'NOPE'}
-            </SwipeIndicator>}
-            
-            <ProfileImage imageUrl={profiles[currentProfile].imageUrl} />
-            <ProfileInfo>
-              <ProfileName>{profiles[currentProfile].name}</ProfileName>
-              <ProfileBio>
-                {profiles[currentProfile].bio}
-              </ProfileBio>
-            </ProfileInfo>
-          </ProfileCard>
+      <ProfileCard>
+        {swipeDirection && <SwipeIndicator type={swipeDirection}>
+          {swipeDirection === 'like' ? 'LIKE' : 'NOPE'}
+        </SwipeIndicator>}
+        
+        <ProfileImage 
+          imageUrl={profiles[currentProfile].photos?.[0] || 'https://via.placeholder.com/400x300/cccccc/ffffff?text=No+Image'} 
+        />
+        <ProfileInfo>
+          <ProfileName>{profiles[currentProfile].title}</ProfileName>
+          <ProfileBio>{profiles[currentProfile].bio}</ProfileBio>
           
-          <ActionButtons>
-            <ActionButton color="#ff4d4d" onClick={() => handleSwipe('dislike')}>✗</ActionButton>
-            <ActionButton color="#4ecdc4" onClick={() => handleSwipe('like')}>♥</ActionButton>
-          </ActionButtons>
-        </>
-      ) : (
-        <NoContent>
-          <h2>Create a Duo Profile</h2>
-          <p>Team up with a friend to start matching with other duos</p>
-          <button style={{ marginTop: '20px' }}>Get Started</button>
-        </NoContent>
-      )}
+          {profiles[currentProfile].location && (
+            <LocationInfo>
+              <LocationIcon>📍</LocationIcon>
+              <LocationText>{profiles[currentProfile].location}</LocationText>
+              {profiles[currentProfile].distance !== null && (
+                <DistanceBadge>{profiles[currentProfile].distance} miles away</DistanceBadge>
+              )}
+            </LocationInfo>
+          )}
+        </ProfileInfo>
+      </ProfileCard>
+      
+      <ActionButtons>
+        <ActionButton color="#ff4d4d" onClick={() => handleSwipe('dislike')}>✗</ActionButton>
+        <ActionButton color="#4ecdc4" onClick={() => handleSwipe('like')}>♥</ActionButton>
+      </ActionButtons>
     </HomeContainer>
   );
 };

@@ -57,6 +57,131 @@ const CodeBlock = styled.pre`
   margin-top: 10px;
 `;
 
+// Add a new section for seeding test data with realistic locations
+const SeedDataSection = styled.div`
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+`;
+
+const SeedButton = styled.button`
+  background-color: #9c27b0;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  
+  &:hover {
+    background-color: #7b1fa2;
+  }
+`;
+
+// Sample duo data with real locations
+const sampleDuoData = [
+  {
+    title: "Alex & Jordan",
+    bio: "Gaming enthusiasts looking for worthy opponents in FPS and strategy games.",
+    photos: ["https://via.placeholder.com/400x300/FF4081/FFFFFF?text=Alex+and+Jordan"],
+    location: "San Francisco, CA",
+    latitude: 37.7749,
+    longitude: -122.4194
+  },
+  {
+    title: "Taylor & Morgan",
+    bio: "Adventure seekers who love outdoor activities and board games.",
+    photos: ["https://via.placeholder.com/400x300/3F51B5/FFFFFF?text=Taylor+and+Morgan"],
+    location: "Seattle, WA",
+    latitude: 47.6062,
+    longitude: -122.3321
+  },
+  {
+    title: "Jamie & Casey",
+    bio: "Music lovers and casual gamers. We enjoy cooperative gameplay and puzzle solving.",
+    photos: ["https://via.placeholder.com/400x300/4CAF50/FFFFFF?text=Jamie+and+Casey"],
+    location: "Austin, TX",
+    latitude: 30.2672,
+    longitude: -97.7431
+  },
+  {
+    title: "Riley & Quinn",
+    bio: "Film buffs and RPG enthusiasts. Looking for other creative duos to hang out with.",
+    photos: ["https://via.placeholder.com/400x300/FFC107/FFFFFF?text=Riley+and+Quinn"],
+    location: "Chicago, IL",
+    latitude: 41.8781,
+    longitude: -87.6298
+  },
+  {
+    title: "Skylar & Dakota",
+    bio: "Tech geeks and coffee lovers. We're into coding, gaming, and trying new cafes.",
+    photos: ["https://via.placeholder.com/400x300/009688/FFFFFF?text=Skylar+and+Dakota"],
+    location: "Portland, OR",
+    latitude: 45.5051,
+    longitude: -122.6750
+  }
+];
+
+const seedTestDuos = async () => {
+  try {
+    // First create some test users
+    const users = [];
+    
+    for (let i = 1; i <= 10; i++) {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({
+          id: `test-user-${i}`,
+          name: `Test User ${i}`,
+          email: `testuser${i}@example.com`
+        })
+        .select()
+        .single();
+        
+      if (userError) {
+        console.error(`Error creating test user ${i}:`, userError);
+        continue;
+      }
+      
+      users.push(userData);
+    }
+    
+    // Create duo profiles with location data
+    for (let i = 0; i < sampleDuoData.length; i++) {
+      const duoData = sampleDuoData[i];
+      const user1Index = i * 2;
+      const user2Index = i * 2 + 1;
+      
+      if (user1Index >= users.length || user2Index >= users.length) break;
+      
+      const { data: duoResult, error: duoError } = await supabase
+        .from('duos')
+        .insert({
+          title: duoData.title,
+          bio: duoData.bio,
+          user1_id: users[user1Index].id,
+          user2_id: users[user2Index].id,
+          photos: duoData.photos,
+          location: duoData.location,
+          latitude: duoData.latitude,
+          longitude: duoData.longitude
+        })
+        .select();
+        
+      if (duoError) {
+        console.error(`Error creating test duo ${i}:`, duoError);
+      } else {
+        console.log(`Created test duo:`, duoResult);
+      }
+    }
+    
+    return { success: true, message: "Created test duo profiles with location data." };
+  } catch (err: any) {
+    console.error("Error seeding test data:", err);
+    return { success: false, message: `Error: ${err.message}` };
+  }
+};
+
 const Debug = () => {
   const [result, setResult] = useState<any>(null);
   const [email, setEmail] = useState('');
@@ -179,6 +304,17 @@ const Debug = () => {
           <CodeBlock>{JSON.stringify(result, null, 2)}</CodeBlock>
         </Card>
       )}
+      
+      <SeedDataSection>
+        <h3>Seed Test Data</h3>
+        <p>Create sample duo profiles with realistic location data for testing.</p>
+        <SeedButton onClick={async () => {
+          const result = await seedTestDuos();
+          alert(result.message);
+        }}>
+          Seed Test Duos
+        </SeedButton>
+      </SeedDataSection>
     </Container>
   );
 };

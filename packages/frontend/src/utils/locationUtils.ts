@@ -1,28 +1,41 @@
 /**
- * Calculates the distance between two geographic coordinates using the Haversine formula
- * @param lat1 Latitude of first point in decimal degrees
- * @param lon1 Longitude of first point in decimal degrees
- * @param lat2 Latitude of second point in decimal degrees
- * @param lon2 Longitude of second point in decimal degrees
- * @returns Distance in kilometers
+ * Calculates the distance between two geographical coordinates using the Haversine formula.
+ * @param lat1 Latitude of the first point in degrees
+ * @param lon1 Longitude of the first point in degrees
+ * @param lat2 Latitude of the second point in degrees
+ * @param lon2 Longitude of the second point in degrees
+ * @returns Distance in miles, rounded to one decimal place
  */
 export const calculateDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number => {
-  const R = 6371; // Earth's radius in kilometers
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
+  lat1?: number | null,
+  lon1?: number | null,
+  lat2?: number | null,
+  lon2?: number | null
+): number | null => {
+  // Return null if any coordinates are missing
+  if (!lat1 || !lon1 || !lat2 || !lon2) {
+    return null;
+  }
+
+  // Convert latitude and longitude from degrees to radians
+  const radLat1 = (Math.PI * lat1) / 180;
+  const radLon1 = (Math.PI * lon1) / 180;
+  const radLat2 = (Math.PI * lat2) / 180;
+  const radLon2 = (Math.PI * lon2) / 180;
+
+  // Haversine formula
+  const dLat = radLat2 - radLat1;
+  const dLon = radLon2 - radLon1;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
+  // Earth's radius in miles
+  const radius = 3958.8;
   
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const distance = R * c;
+  // Calculate the distance and round to one decimal place
+  const distance = Math.round(radius * c * 10) / 10;
   
   return distance;
 };
