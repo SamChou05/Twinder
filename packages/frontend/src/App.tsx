@@ -13,7 +13,10 @@ import Friends from './pages/Friends';
 import DuoList from './pages/DuoList';
 import DuoCreate from './pages/DuoCreate';
 import DuoEdit from './pages/DuoEdit';
+import DuoProfile from './pages/DuoProfile';
 import Chats from './pages/Chats';
+import Matches from './pages/Matches';
+import UserProfile from './pages/UserProfile';
 
 const App = () => {
   const { session, initialized, loading, error } = useSelector((state: RootState) => state.auth);
@@ -107,6 +110,36 @@ const App = () => {
             <ProtectedRoute>
               <Layout>
                 <Friends />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/matches" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Matches />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/duo-profile/:id" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <DuoProfile />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/user-profile/:id" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <UserProfile />
               </Layout>
             </ProtectedRoute>
           } 

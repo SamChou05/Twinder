@@ -52,13 +52,13 @@ const PhotoThumbnail = styled.div<{ imageUrl?: string }>`
   }
 `;
 
-// Add new components for the photo preview modal
+// New styled components for photo preview
 const PhotoModal = styled.div`
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
@@ -66,15 +66,14 @@ const PhotoModal = styled.div`
   z-index: 1000;
 `;
 
-const PhotoPreview = styled.div<{ imageUrl?: string }>`
-  max-width: 90%;
-  max-height: 90%;
-  background-image: ${props => props.imageUrl ? `url(${props.imageUrl})` : 'none'};
+const PhotoPreview = styled.div<{ imageUrl: string }>`
+  width: 80%;
+  height: 80%;
+  max-width: 800px;
+  background-image: ${props => `url(${props.imageUrl})`};
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  width: 80%;
-  height: 80%;
   border-radius: 8px;
 `;
 
@@ -82,35 +81,41 @@ const CloseButton = styled.button`
   position: absolute;
   top: 20px;
   right: 20px;
-  background-color: rgba(0, 0, 0, 0.5);
-  border: none;
+  background: rgba(0, 0, 0, 0.5);
   color: white;
+  border: none;
+  border-radius: 50%;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  font-size: 20px;
+  font-size: 24px;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   cursor: pointer;
+  transition: background-color 0.2s;
   
   &:hover {
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.8);
   }
 `;
 
+// Update PhotoPlaceholder to have a more attractive style
 const PhotoPlaceholder = styled.div`
-  width: 100%;
-  height: 120px;
-  border-radius: 4px;
+  width: 150px;
+  height: 150px;
+  background-color: #f5f5f5;
   border: 2px dashed #ccc;
+  border-radius: 12px;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   cursor: pointer;
+  transition: all 0.2s;
   
   &:hover {
+    background-color: #e9e9e9;
     border-color: var(--primary-color);
+    transform: scale(1.03);
   }
 `;
 

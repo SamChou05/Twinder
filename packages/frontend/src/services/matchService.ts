@@ -31,6 +31,36 @@ interface Match {
   createdAt: string;
 }
 
+export interface DuoProfile {
+  id: string;
+  title: string;
+  bio: string;
+  photos: string[];
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  user1_id: string;
+  user2_id: string;
+  user1?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  user2?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+export interface DuoMatch {
+  duo1_id: string;
+  duo2_id: string;
+  matched_at: string;
+  duo1?: DuoProfile;
+  duo2?: DuoProfile;
+}
+
 // Get potential matches (swipe deck) with location preference
 export const getPotentialMatches = async (duoId: string): Promise<Duo[]> => {
   try {
@@ -141,73 +171,55 @@ export const getPotentialMatches = async (duoId: string): Promise<Duo[]> => {
   }
 };
 
-// Like a duo
-export const likeDuo = async (likerDuoId: string, likedDuoId: string): Promise<{ match?: Match }> => {
-  // Record the interaction
-  await supabase
-    .from('duo_interactions')
-    .insert({
-      source_duo_id: likerDuoId,
-      target_duo_id: likedDuoId,
-      action: 'like'
-    });
+/**
+ * Like a duo - records that your duo likes another duo
+ * @param likerDuoId The ID of your duo
+ * @param likedDuoId The ID of the duo you like
+ * @returns Object with isMatch indicating if this created a mutual match
+ */
+export const likeDuo = async (likerDuoId: string, likedDuoId: string): Promise<{success: boolean, isMatch: boolean, error?: string}> => {
+  try {
+    // First check if the other duo already liked us (which would make this a match)
+    const { data: existingLike, error: checkError } = await supabase
+      .from('duo_matches')
+      .select('id')
+      .eq('liker_duo_id', likedDuoId)
+      .eq('liked_duo_id', likerDuoId)
+      .single();
     
-  // Check if there's a mutual like (a match)
-  const { data: mutualLike } = await supabase
-    .from('duo_interactions')
-    .select()
-    .eq('source_duo_id', likedDuoId)
-    .eq('target_duo_id', likerDuoId)
-    .eq('action', 'like')
-    .maybeSingle();
-  
-  if (mutualLike) {
-    // It's a match! Create a match record
-    const { data: match } = await supabase
-      .from('matches')
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = not found, which is expected
+      console.error('Error checking for existing like:', checkError);
+      return { success: false, isMatch: false, error: checkError.message };
+    }
+    
+    // Record the like
+    const { data, error } = await supabase
+      .from('duo_matches')
       .insert({
-        duo_a_id: likerDuoId,
-        duo_b_id: likedDuoId,
-        is_matched: true
+        liker_duo_id: likerDuoId,
+        liked_duo_id: likedDuoId
       })
       .select()
       .single();
+    
+    if (error) {
+      // If it's a unique violation, the like already exists, which is fine
+      if (error.code === '23505') {
+        return { success: true, isMatch: !!existingLike };
+      }
       
-    if (match) {
-      // Fetch complete duo information
-      const { data: duoA } = await supabase
-        .from('duos')
-        .select(`
-          id, title, bio, photos, latitude, longitude, location,
-          user1:user1_id(id, name, photos),
-          user2:user2_id(id, name, photos)
-        `)
-        .eq('id', likerDuoId)
-        .single();
-        
-      const { data: duoB } = await supabase
-        .from('duos')
-        .select(`
-          id, title, bio, photos, latitude, longitude, location,
-          user1:user1_id(id, name, photos),
-          user2:user2_id(id, name, photos)
-        `)
-        .eq('id', likedDuoId)
-        .single();
-      
-      return { 
-        match: {
-          id: match.id,
-          duoA: duoA!,
-          duoB: duoB!,
-          isMatched: true,
-          createdAt: match.created_at
-        } 
-      };
+      console.error('Error creating duo like:', error);
+      return { success: false, isMatch: false, error: error.message };
     }
+    
+    console.log('Duo like recorded:', data);
+    
+    // Return whether this created a match
+    return { success: true, isMatch: !!existingLike };
+  } catch (err: any) {
+    console.error('Error in likeDuo:', err);
+    return { success: false, isMatch: false, error: err.message };
   }
-  
-  return { match: undefined };
 };
 
 // Dislike a duo
@@ -222,40 +234,62 @@ export const dislikeDuo = async (dislikerDuoId: string, dislikedDuoId: string): 
     });
 };
 
-// Get all matches
-export const getMatches = async (duoId: string): Promise<Match[]> => {
-  // Fetch matches where the duo is either duo_a or duo_b
-  const { data, error } = await supabase
-    .from('matches')
-    .select(`
-      id, 
-      is_matched, 
-      created_at,
-      duoA:duo_a_id(
-        id, title, bio, photos, latitude, longitude, location,
-        user1:user1_id(id, name, photos),
-        user2:user2_id(id, name, photos)
-      ),
-      duoB:duo_b_id(
-        id, title, bio, photos, latitude, longitude, location,
-        user1:user1_id(id, name, photos),
-        user2:user2_id(id, name, photos)
-      )
-    `)
-    .or(`duo_a_id.eq.${duoId},duo_b_id.eq.${duoId}`)
-    .eq('is_matched', true);
+/**
+ * Get all duos that the specified duo has matched with
+ * @param duoId The ID of your duo
+ * @returns Array of matched duos with their profiles
+ */
+export const getMatches = async (duoId: string): Promise<{matches: DuoMatch[], error?: string}> => {
+  try {
+    // Get all matches where this duo is either duo1 or duo2
+    const { data, error } = await supabase
+      .from('matched_duos')
+      .select(`
+        duo1_id, duo2_id, matched_at,
+        duo1:duo1_id(id, title, bio, photos, location, latitude, longitude, user1_id, user2_id),
+        duo2:duo2_id(id, title, bio, photos, location, latitude, longitude, user1_id, user2_id)
+      `)
+      .or(`duo1_id.eq.${duoId},duo2_id.eq.${duoId}`);
     
-  if (error) {
-    console.error('Error fetching matches:', error);
-    return [];
+    if (error) {
+      console.error('Error getting duo matches:', error);
+      return { matches: [], error: error.message };
+    }
+    
+    console.log('Duo matches:', data);
+    
+    return { 
+      matches: data as DuoMatch[] || []
+    };
+  } catch (err: any) {
+    console.error('Error in getMatches:', err);
+    return { matches: [], error: err.message };
   }
-  
-  // Transform the data to match the expected interface
-  return data.map(match => ({
-    id: match.id,
-    duoA: match.duoA,
-    duoB: match.duoB,
-    isMatched: match.is_matched,
-    createdAt: match.created_at
-  }));
+};
+
+/**
+ * Get all the duos that the current duo has liked
+ * @param duoId The ID of your duo
+ * @returns Array of duo IDs that have been liked
+ */
+export const getLikedDuos = async (duoId: string): Promise<{likedDuoIds: string[], error?: string}> => {
+  try {
+    const { data, error } = await supabase
+      .from('duo_matches')
+      .select('liked_duo_id')
+      .eq('liker_duo_id', duoId);
+    
+    if (error) {
+      console.error('Error getting liked duos:', error);
+      return { likedDuoIds: [], error: error.message };
+    }
+    
+    const likedDuoIds = data.map(item => item.liked_duo_id);
+    console.log('Liked duo IDs:', likedDuoIds);
+    
+    return { likedDuoIds };
+  } catch (err: any) {
+    console.error('Error in getLikedDuos:', err);
+    return { likedDuoIds: [], error: err.message };
+  }
 }; 
