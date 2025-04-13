@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useSelector } from 'react-redux';
 import { supabase } from '../supabaseClient';
+import { RootState } from '../store';
 
 const Container = styled.div`
   max-width: 800px;
@@ -207,6 +209,7 @@ const DuoProfile = () => {
   const [profile, setProfile] = useState<DuoProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useSelector((state: RootState) => state.auth);
   
   useEffect(() => {
     const fetchDuoProfile = async () => {
@@ -268,9 +271,90 @@ const DuoProfile = () => {
     navigate(-1); // Go back to previous page
   };
   
-  const handleStartChat = () => {
-    // Navigate to chat with this duo
-    navigate('/chats');
+  const handleStartChat = async () => {
+    if (!profile) return;
+    
+    try {
+      // Get the current user's duo
+      if (!user) return;
+      
+      const { data: userDuos, error: duosError } = await supabase
+        .from('duos')
+        .select('id')
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      
+      if (duosError || !userDuos || userDuos.length === 0) {
+        console.error('Error fetching user duos:', duosError);
+        return;
+      }
+      
+      const currentUserDuoId = userDuos[0].id;
+      
+      // Check if a chat room already exists between these duos
+      const { data: existingRoom, error: roomError } = await supabase
+        .from('chat_rooms')
+        .select('id')
+        .or(`duo1_id.eq.${currentUserDuoId},duo2_id.eq.${profile.id}`)
+        .or(`duo1_id.eq.${profile.id},duo2_id.eq.${currentUserDuoId}`)
+        .maybeSingle();
+      
+      if (roomError) {
+        console.error('Error checking for existing chat room:', roomError);
+        return;
+      }
+      
+      if (existingRoom) {
+        // If a chat room already exists, navigate to it
+        navigate(`/chat-room/${existingRoom.id}`);
+        return;
+      }
+      
+      // Get current duo details
+      const { data: currentDuo, error: currentDuoError } = await supabase
+        .from('duos')
+        .select('*, user1:user1_id(name), user2:user2_id(name)')
+        .eq('id', currentUserDuoId)
+        .single();
+      
+      if (currentDuoError || !currentDuo) {
+        console.error('Error fetching current duo details:', currentDuoError);
+        return;
+      }
+      
+      // Create a new chat room
+      const roomName = `${currentDuo.title} & ${profile.title}`;
+      const room = {
+        duo1_id: currentUserDuoId,
+        duo2_id: profile.id,
+        name: roomName,
+        photo: profile.photos?.[0] || null,
+        participants: [
+          { id: currentDuo.user1_id, name: currentDuo.user1.name },
+          { id: currentDuo.user2_id, name: currentDuo.user2.name },
+          { id: profile.user1_id, name: profile.user1?.name || 'User 1' },
+          { id: profile.user2_id, name: profile.user2?.name || 'User 2' }
+        ],
+        created_at: new Date().toISOString(),
+        last_message: '',
+        last_message_time: new Date().toISOString()
+      };
+      
+      const { data: newRoom, error: createError } = await supabase
+        .from('chat_rooms')
+        .insert(room)
+        .select('id')
+        .single();
+      
+      if (createError || !newRoom) {
+        console.error('Error creating chat room:', createError);
+        return;
+      }
+      
+      // Navigate to the new chat room
+      navigate(`/chat-room/${newRoom.id}`);
+    } catch (err) {
+      console.error('Error starting chat:', err);
+    }
   };
   
   const handleViewUserProfile = (userId: string) => {

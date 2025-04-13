@@ -15,6 +15,7 @@ import DuoCreate from './pages/DuoCreate';
 import DuoEdit from './pages/DuoEdit';
 import DuoProfile from './pages/DuoProfile';
 import Chats from './pages/Chats';
+import ChatRoom from './pages/ChatRoom';
 import Matches from './pages/Matches';
 import UserProfile from './pages/UserProfile';
 
@@ -149,7 +150,17 @@ const App = () => {
           element={
             <ProtectedRoute>
               <Layout>
-                <div>Chats Page Coming Soon</div>
+                <Chats />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/chat-room/:id" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ChatRoom />
               </Layout>
             </ProtectedRoute>
           } 

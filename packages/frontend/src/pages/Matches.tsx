@@ -382,10 +382,108 @@ const Matches = () => {
   };
   
   // Handle starting a chat with a match
-  const handleStartChat = (matchedDuo: DuoProfile) => {
-    // For now, just navigate to chats page
-    // In the future, this would create or open a specific chat
-    navigate('/chats');
+  const handleStartChat = async (matchedDuo: DuoProfile) => {
+    if (!user || !selectedDuoId) return;
+    
+    try {
+      // Show loading indicator or some feedback
+      window.alert("Creating chat room...");
+      
+      // Get current duo details
+      const { data: currentDuo, error: currentDuoError } = await supabase
+        .from('duos')
+        .select('*, user1:user1_id(id, name), user2:user2_id(id, name)')
+        .eq('id', selectedDuoId)
+        .single();
+      
+      if (currentDuoError || !currentDuo) {
+        console.error('Error fetching current duo details:', currentDuoError);
+        window.alert("Failed to get duo details");
+        return;
+      }
+      
+      // Get matched duo details with user info
+      const { data: matchedDuoDetails, error: matchedDuoError } = await supabase
+        .from('duos')
+        .select('*, user1:user1_id(id, name), user2:user2_id(id, name)')
+        .eq('id', matchedDuo.id)
+        .single();
+      
+      if (matchedDuoError || !matchedDuoDetails) {
+        console.error('Error fetching matched duo details:', matchedDuoError);
+        window.alert("Failed to get matched duo details");
+        return;
+      }
+      
+      // Check if a chat room already exists between these duos
+      const { data: existingRoom, error: roomError } = await supabase
+        .from('chat_rooms')
+        .select('id')
+        .or(`duo1_id.eq.${selectedDuoId},duo2_id.eq.${matchedDuo.id}`)
+        .or(`duo1_id.eq.${matchedDuo.id},duo2_id.eq.${selectedDuoId}`)
+        .maybeSingle();
+      
+      if (roomError) {
+        console.error('Error checking for existing chat room:', roomError);
+        window.alert("Failed to check for existing chats");
+        return;
+      }
+      
+      let roomId;
+      
+      if (existingRoom) {
+        // If a chat room already exists, use its ID
+        console.log('Chat room already exists:', existingRoom);
+        roomId = existingRoom.id;
+      } else {
+        // Create a new chat room
+        const roomName = `${currentDuo.title} & ${matchedDuoDetails.title}`;
+        
+        // Extract properly typed user objects
+        const user1 = Array.isArray(currentDuo.user1) ? currentDuo.user1[0] : currentDuo.user1;
+        const user2 = Array.isArray(currentDuo.user2) ? currentDuo.user2[0] : currentDuo.user2;
+        const matchedUser1 = Array.isArray(matchedDuoDetails.user1) ? matchedDuoDetails.user1[0] : matchedDuoDetails.user1;
+        const matchedUser2 = Array.isArray(matchedDuoDetails.user2) ? matchedDuoDetails.user2[0] : matchedDuoDetails.user2;
+        
+        const room = {
+          duo1_id: selectedDuoId,
+          duo2_id: matchedDuo.id,
+          name: roomName,
+          photo: matchedDuo.photos?.[0] || null,
+          participants: [
+            { id: user1?.id, name: user1?.name || 'User 1' },
+            { id: user2?.id, name: user2?.name || 'User 2' },
+            { id: matchedUser1?.id, name: matchedUser1?.name || 'User 1' },
+            { id: matchedUser2?.id, name: matchedUser2?.name || 'User 2' }
+          ],
+          created_at: new Date().toISOString(),
+          last_message: '',
+          last_message_time: new Date().toISOString()
+        };
+        
+        const { data: newRoom, error: createError } = await supabase
+          .from('chat_rooms')
+          .insert(room)
+          .select('id')
+          .single();
+        
+        if (createError || !newRoom) {
+          console.error('Error creating chat room:', createError);
+          window.alert("Failed to create chat room");
+          return;
+        }
+        
+        console.log('Created new chat room:', newRoom);
+        roomId = newRoom.id;
+      }
+      
+      // Navigate to the chat room
+      navigate(`/chat-room/${roomId}`);
+      
+    } catch (err) {
+      console.error('Error starting chat:', err);
+      window.alert("An error occurred while creating the chat room");
+    }
   };
   
   // Handle viewing a duo's profile

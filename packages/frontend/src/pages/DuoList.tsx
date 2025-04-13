@@ -73,6 +73,13 @@ const DuoCard = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 `;
 
 const DuoCardContent = styled.div`
@@ -414,6 +421,11 @@ const DuoList = () => {
     return `${user1Name} & ${user2Name}`;
   };
   
+  const handleViewDuoProfile = (duoId: string, e: React.MouseEvent) => {
+    // Don't prevent propagation here, we want the click to work
+    navigate(`/duo-profile/${duoId}`);
+  };
+  
   // Render based on state
   if (loading) {
     return (
@@ -464,7 +476,10 @@ const DuoList = () => {
             const partner = getPartnerInfo(duo);
             
             return (
-              <DuoCard key={duo.id}>
+              <DuoCard 
+                key={duo.id} 
+                onClick={(e) => handleViewDuoProfile(duo.id, e)}
+              >
                 <DuoCardContent>
                   <DuoTitle>{getDuoName(duo)}</DuoTitle>
                   <DuoBio>{duo.bio || 'No bio yet'}</DuoBio>
@@ -487,10 +502,16 @@ const DuoList = () => {
                 </DuoCardContent>
                 
                 <DuoActions>
-                  <ActionButton onClick={() => handleEdit(duo.id)}>
+                  <ActionButton onClick={(e) => {
+                    e.stopPropagation(); // Prevent navigating to profile
+                    handleEdit(duo.id);
+                  }}>
                     Edit
                   </ActionButton>
-                  <DeleteButton onClick={() => handleDelete(duo.id)}>
+                  <DeleteButton onClick={(e) => {
+                    e.stopPropagation(); // Prevent navigating to profile
+                    handleDelete(duo.id);
+                  }}>
                     Delete
                   </DeleteButton>
                 </DuoActions>

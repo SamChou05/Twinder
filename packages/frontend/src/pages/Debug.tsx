@@ -583,6 +583,175 @@ const Debug = () => {
           <CodeBlock>{seedResult}</CodeBlock>
         </Card>
       )}
+      
+      {/* Add a Chat Debug Section */}
+      <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
+        <h2>Chat System Debug</h2>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <h3>Test Realtime Connection</h3>
+          <button 
+            onClick={async () => {
+              try {
+                console.log("Testing Supabase realtime connection...");
+                const channel = supabase.channel('test-channel');
+                
+                channel
+                  .on('broadcast', { event: 'test' }, (payload) => {
+                    console.log('Received broadcast message:', payload);
+                    alert(`Realtime works! Received: ${JSON.stringify(payload)}`);
+                  })
+                  .subscribe((status) => {
+                    console.log('Subscription status:', status);
+                    alert(`Subscription status: ${status}`);
+                  });
+                  
+                // Wait for subscription and then broadcast
+                setTimeout(() => {
+                  channel.send({
+                    type: 'broadcast',
+                    event: 'test',
+                    payload: { message: 'Hello from broadcast!' }
+                  });
+                }, 1000);
+              } catch (error) {
+                console.error("Error testing realtime:", error);
+                alert(`Error testing realtime: ${error}`);
+              }
+            }}
+          >
+            Test Realtime
+          </button>
+        </div>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <h3>Check Chat Tables</h3>
+          <button 
+            onClick={async () => {
+              try {
+                // Check chat_rooms table
+                const { data: rooms, error: roomsError } = await supabase
+                  .from('chat_rooms')
+                  .select('*')
+                  .limit(5);
+                
+                if (roomsError) {
+                  console.error("Error fetching chat rooms:", roomsError);
+                  alert(`Error fetching chat rooms: ${roomsError.message}`);
+                  return;
+                }
+                
+                console.log("Chat rooms:", rooms);
+                
+                // Check chat_messages table
+                const { data: messages, error: messagesError } = await supabase
+                  .from('chat_messages')
+                  .select('*')
+                  .limit(5);
+                
+                if (messagesError) {
+                  console.error("Error fetching chat messages:", messagesError);
+                  alert(`Error fetching chat messages: ${messagesError.message}`);
+                  return;
+                }
+                
+                console.log("Chat messages:", messages);
+                
+                alert(`Found ${rooms.length} chat rooms and ${messages.length} messages. Check console for details.`);
+              } catch (error) {
+                console.error("Error checking chat tables:", error);
+                alert(`Error checking chat tables: ${error}`);
+              }
+            }}
+          >
+            Check Chat Tables
+          </button>
+        </div>
+        
+        <div>
+          <h3>Create Test Chat Room & Message</h3>
+          <button 
+            onClick={async () => {
+              if (!user) {
+                alert("Please sign in first");
+                return;
+              }
+              
+              try {
+                // 1. Get user's duos
+                const { data: duos, error: duosError } = await supabase
+                  .from('duos')
+                  .select('id, title')
+                  .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+                  .limit(1);
+                  
+                if (duosError || !duos || duos.length === 0) {
+                  console.error("Error or no duos found:", duosError);
+                  alert("You need at least one duo to create a test chat");
+                  return;
+                }
+                
+                console.log("Found duo:", duos[0]);
+                
+                // 2. Create a test chat room
+                const testRoom = {
+                  duo1_id: duos[0].id,
+                  duo2_id: duos[0].id, // Same duo for testing
+                  name: `Test Chat Room ${new Date().toISOString()}`,
+                  participants: [{ id: user.id, name: user.email }],
+                  created_at: new Date().toISOString(),
+                  last_message: "This is a test room",
+                  last_message_time: new Date().toISOString()
+                };
+                
+                const { data: room, error: roomError } = await supabase
+                  .from('chat_rooms')
+                  .insert(testRoom)
+                  .select()
+                  .single();
+                  
+                if (roomError) {
+                  console.error("Error creating test chat room:", roomError);
+                  alert(`Error creating test chat room: ${roomError.message}`);
+                  return;
+                }
+                
+                console.log("Created test room:", room);
+                
+                // 3. Create a test message
+                const testMessage = {
+                  room_id: room.id,
+                  sender_id: user.id,
+                  sender_name: user.email,
+                  content: "This is a test message sent at " + new Date().toLocaleTimeString(),
+                  created_at: new Date().toISOString()
+                };
+                
+                const { data: message, error: messageError } = await supabase
+                  .from('chat_messages')
+                  .insert(testMessage)
+                  .select()
+                  .single();
+                  
+                if (messageError) {
+                  console.error("Error creating test message:", messageError);
+                  alert(`Error creating test message: ${messageError.message}`);
+                  return;
+                }
+                
+                console.log("Created test message:", message);
+                alert(`Success! Created test room and message. Go to /chats to see it.`);
+                
+              } catch (error) {
+                console.error("Error creating test chat:", error);
+                alert(`Error creating test chat: ${error}`);
+              }
+            }}
+          >
+            Create Test Chat
+          </button>
+        </div>
+      </div>
     </Container>
   );
 };

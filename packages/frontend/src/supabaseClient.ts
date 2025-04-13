@@ -18,7 +18,17 @@ console.log('Initializing Supabase client with URL:', supabaseUrl);
 const maskedKey = supabaseAnonKey ? `${supabaseAnonKey.substring(0, 3)}...${supabaseAnonKey.substring(supabaseAnonKey.length - 3)}` : 'not set';
 console.log('Using anon key (masked):', maskedKey);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Initialize Supabase client with realtime enabled
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  },
+  db: {
+    schema: 'public'
+  }
+});
 
 // Test Supabase connection
 supabase.auth.getSession().then(({ data, error }) => {
