@@ -109,6 +109,13 @@ const MemberCard = styled.div`
   padding: 15px;
   margin-bottom: 15px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 `;
 
 const MemberAvatar = styled.div`
@@ -266,6 +273,10 @@ const DuoProfile = () => {
     navigate('/chats');
   };
   
+  const handleViewUserProfile = (userId: string) => {
+    navigate(`/user-profile/${userId}`);
+  };
+  
   if (loading) {
     return (
       <Container>
@@ -332,7 +343,7 @@ const DuoProfile = () => {
         <SectionTitle>Members</SectionTitle>
         
         {profile.user1 && (
-          <MemberCard>
+          <MemberCard onClick={() => handleViewUserProfile(profile.user1_id)}>
             <MemberAvatar>{profile.user1.name.charAt(0)}</MemberAvatar>
             <MemberInfo>
               <MemberName>{profile.user1.name}</MemberName>
@@ -342,7 +353,7 @@ const DuoProfile = () => {
         )}
         
         {profile.user2 && (
-          <MemberCard>
+          <MemberCard onClick={() => handleViewUserProfile(profile.user2_id)}>
             <MemberAvatar>{profile.user2.name.charAt(0)}</MemberAvatar>
             <MemberInfo>
               <MemberName>{profile.user2.name}</MemberName>

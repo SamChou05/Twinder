@@ -154,12 +154,8 @@ interface UserProfileData {
   name: string;
   email: string;
   photos: string[];
-  duos: {
-    id: string;
-    title: string;
-    bio: string;
-    photos: string[];
-  }[];
+  bio?: string;
+  age?: number | null;
 }
 
 const UserProfile = () => {
@@ -177,39 +173,42 @@ const UserProfile = () => {
         return;
       }
       
+      console.log('Fetching profile for user ID:', id);
+      
       try {
-        // Fetch user data
+        // First, fetch basic user data
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, name, email, photos')
+          .select('id, name, email')
           .eq('id', id)
           .single();
         
         if (userError) {
-          console.error('Error fetching user profile:', userError);
+          console.error('Error fetching user data:', userError);
           setError(userError.message);
           setLoading(false);
           return;
         }
         
-        // Fetch duos where this user is either user1 or user2
-        const { data: duosData, error: duosError } = await supabase
-          .from('duos')
-          .select('id, title, bio, photos')
-          .or(`user1_id.eq.${id},user2_id.eq.${id}`);
+        console.log('User data found:', userData);
         
-        if (duosError) {
-          console.error('Error fetching user duos:', duosError);
-          // Not setting error here, as we'll still show the user profile
-          // Just without duos
-        }
+        // Fetch the profile using id as the primary key
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', id)  // Use id instead of user_id
+          .maybeSingle();
         
+        console.log('Profile data:', profileData, profileError);
+        
+        // Set profile data based on what we found
         setProfile({
           id: userData.id,
           name: userData.name,
           email: userData.email,
-          photos: userData.photos || [],
-          duos: duosData || []
+          photos: profileData?.photos || [],
+          bio: profileData?.bio || 'No bio available for this user.',
+          age: profileData?.age || null
         });
         
         setLoading(false);
@@ -225,10 +224,6 @@ const UserProfile = () => {
   
   const handleGoBack = () => {
     navigate(-1); // Go back to previous page
-  };
-  
-  const handleDuoClick = (duoId: string) => {
-    navigate(`/duo-profile/${duoId}`);
   };
   
   if (loading) {
@@ -270,8 +265,14 @@ const UserProfile = () => {
           <ProfileInfo>
             <ProfileName>{profile.name}</ProfileName>
             <ProfileEmail>{profile.email}</ProfileEmail>
+            {profile.age && <p>Age: {profile.age}</p>}
           </ProfileInfo>
         </ProfileHeader>
+        {profile.bio && (
+          <div style={{ padding: '0 20px 20px' }}>
+            <p>{profile.bio}</p>
+          </div>
+        )}
       </ProfileCard>
       
       {profile.photos && profile.photos.length > 0 && (
@@ -283,22 +284,6 @@ const UserProfile = () => {
             ))}
           </PhotoGrid>
         </div>
-      )}
-      
-      <SectionTitle>Duos</SectionTitle>
-      {profile.duos && profile.duos.length > 0 ? (
-        <div>
-          {profile.duos.map(duo => (
-            <DuoCard key={duo.id} onClick={() => handleDuoClick(duo.id)}>
-              <DuoTitle>{duo.title}</DuoTitle>
-              <DuoDescription>{duo.bio}</DuoDescription>
-            </DuoCard>
-          ))}
-        </div>
-      ) : (
-        <EmptyState>
-          <p>This user is not part of any duos yet.</p>
-        </EmptyState>
       )}
     </Container>
   );
